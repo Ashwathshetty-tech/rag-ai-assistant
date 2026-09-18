@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../../database/database.service';
-import { EmbeddingProvider } from '../providers/embedding.provider';
+import { Injectable } from "@nestjs/common";
+import { DatabaseService } from "../../database/database.service";
+import { EmbeddingProvider } from "../providers/embedding.provider";
 
 export interface ChunkRecord {
   id: string;
@@ -57,27 +57,28 @@ export class VectorRepository {
     topK = 5,
     documentId?: string,
   ): Promise<SimilarChunk[]> {
-    const vectorLiteral = this.embeddingProvider.toVectorLiteral(queryEmbedding);
+    const vectorLiteral =
+      this.embeddingProvider.toVectorLiteral(queryEmbedding);
 
     const params: any[] = [vectorLiteral, topK];
-    let documentFilter = '';
+    let documentFilter = "";
 
     if (documentId) {
       params.push(documentId);
-      documentFilter = 'WHERE document_id = $3';
+      documentFilter = "WHERE document_id = $3";
     }
 
     const { rows } = await this.db.query(
       `SELECT
-          id,
-          document_id AS "documentId",
-          content,
-          metadata,
-          1 - (embedding <=> $1) AS similarity
-       FROM document_chunks
-       ${documentFilter}
-       ORDER BY embedding <=> $1
-       LIMIT $2`,
+      id,
+      document_id AS "documentId",
+      content,
+      metadata,
+      1 - (embedding <=> $1::vector) AS similarity
+   FROM document_chunks
+   ${documentFilter}
+   ORDER BY embedding <=> $1::vector
+   LIMIT $2::int`,
       params,
     );
 
@@ -85,7 +86,7 @@ export class VectorRepository {
   }
 
   async deleteChunksForDocument(documentId: string): Promise<void> {
-    await this.db.query('DELETE FROM document_chunks WHERE document_id = $1', [
+    await this.db.query("DELETE FROM document_chunks WHERE document_id = $1", [
       documentId,
     ]);
   }
